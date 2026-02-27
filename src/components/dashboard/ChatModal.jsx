@@ -1,4 +1,4 @@
-import React from 'react'
+import { useMessageStore, useSocketStore } from '../../stores'
 
 const ChatModal = ({
   conversation,
@@ -11,8 +11,6 @@ const ChatModal = ({
   formatDate,
   messagesEndRef,
   typingUsers,
-  socketRef,
-  typingTimeoutRef,
   // Image upload
   selectedImage,
   imagePreview,
@@ -23,13 +21,17 @@ const ChatModal = ({
   previewImage,
   setPreviewImage
 }) => {
+  const emitTyping = useSocketStore(state => state.emitTyping)
+  const emitStopTyping = useSocketStore(state => state.emitStopTyping)
+  const typingTimeoutRef = useMessageStore(state => state.refs.typingTimeoutRef)
+
   const handleTyping = (e) => {
     setNewMessage(e.target.value)
     if (conversation) {
-      socketRef.current?.emit('typing', { conversationId: conversation._id })
+      emitTyping(conversation._id)
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       typingTimeoutRef.current = setTimeout(() => {
-        socketRef.current?.emit('stop_typing', { conversationId: conversation._id })
+        emitStopTyping(conversation._id)
       }, 2000)
     }
   }
