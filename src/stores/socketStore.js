@@ -4,7 +4,7 @@ import { useAuthStore } from './authStore'
 import { useConversationStore } from './conversationStore'
 import { useMessageStore } from './messageStore'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL
 
 export const useSocketStore = create((set, get) => ({
   socket: null,
