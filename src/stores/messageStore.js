@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import axios from 'axios'
 import { useAuthStore } from './authStore'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL
 
 export const useMessageStore = create((set, get) => ({
   // State
