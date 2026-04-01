@@ -53,6 +53,29 @@ export function useDashboard() {
     }
   }, [auth.user])
 
+  // Handle notification clicks (focus app + open chat) like WhatsApp
+  useEffect(() => {
+    const onNotificationClick = (event) => {
+      const ticketId = event.detail?.ticketId
+      if (!ticketId) return
+
+      const targetConv = conversation.conversations.find(c => c._id === ticketId)
+      if (targetConv) {
+        conversation.setSelectedConversation(targetConv)
+        conversation.setShowChatModal(true)
+      }
+
+      try {
+        window.focus()
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    window.addEventListener('app:notification-click', onNotificationClick)
+    return () => window.removeEventListener('app:notification-click', onNotificationClick)
+  }, [conversation.conversations])
+
   // Fetch messages when conversation selected
   useEffect(() => {
     selectedConvRef.current = conversation.selectedConversation

@@ -6,6 +6,7 @@ import {
   ChatModal, 
   AssignModal
 } from '../components/dashboard'
+import { NotificationBanner } from '../components/NotificationBanner'
 import { useDashboard } from '../hooks/useDashboard'
 
 function Dashboard() {
@@ -55,6 +56,10 @@ function Dashboard() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Header user={user} onLogout={handleLogout} />
+
+      <div className="p-4">
+        <NotificationBanner />
+      </div>
 
       {user?.role === 'user' ? (
         <UserDashboard

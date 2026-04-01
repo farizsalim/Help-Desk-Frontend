@@ -1,16 +1,40 @@
-# React + Vite
+# Help-Desk Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🔧 Stack
+- React + Vite
+- Zustand buat store (global state)
+- SocketIO untuk real-time
+- Tailwind untuk style
 
-Currently, two official plugins are available:
+## 📌 Struktur yang penting
+- `src/page`
+  - `Dashboard.jsx` (main dashboard)
+  - `Login.jsx` / `Register.jsx`
+- `src/components`
+  - `NotificationBanner.jsx` (banner izin notifikasi)
+  - `ProtectedRoute.jsx` (routing aman)
+  - `dashboard/*` (UI dashboard, ticket list, stats, modal)
+- `src/hooks`
+  - `useDashboard.js` (hook logika dashboard)
+  - `useNotifications.js` (hook izin notifikasi)
+- `src/stores`
+  - `authStore.js`, `conversationStore.js`, `messageStore.js`, `socketStore.js` (Zustand store)
+- `src/utils/notificationService.js` (send notification browser)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ⚙️ Fitur yang jalan
+- Login/Logout
+- Create ticket
+- List ticket + filter
+- Chat di dashboard
+- Notifikasi: new message / ticket closed / staff ditambahkan / new ticket
+- Modal untuk assign, chat, create ticket
 
-## React Compiler
+## ▶️ Cara jalanin
+1. `npm install`
+2. `npm run dev`
+3. buka `localhost:5173`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚧 Catatan
+- Notifikasi di desktop kompatibel. HP butuh PWA + service worker biar background popup.
+- Store pake Zustand di `src/stores`.
+- Lagi yang diimprove bisa: notif click open ticket, service worker, lebih banyak validasi.
