@@ -11,31 +11,22 @@ export default defineConfig({
     port: devPort,
     strictPort: true,
     cors: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
-    },
     origin: process.env.VITE_ORIGIN,
 
-    // ✅ FIX HMR
     hmr: hmrHost
       ? {
           protocol: 'wss',
           host: hmrHost,
-          port: 443,
-          clientPort: 443,
-          path: '/'
+          clientPort: 443
         }
       : {
           protocol: 'ws',
           host: 'localhost',
-          port: devPort,
-          clientPort: devPort
+          port: devPort
         },
 
     allowedHosts: [
-      '.ngrok-free.dev'
+      'frontend.helpdesk54321.online'
     ]
   }
 })

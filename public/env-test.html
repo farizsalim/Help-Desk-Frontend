@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Environment Variables Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { color: #00d9ff; margin-bottom: 20px; }
+    .card {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .env-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #0f3460;
+    }
+    .env-item:last-child { border-bottom: none; }
+    .env-key { color: #aaa; font-size: 14px; }
+    .env-value { 
+      font-family: monospace; 
+      background: #0f3460;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      word-break: break-all;
+      max-width: 70%;
+    }
+    .status-ok { color: #00ff88; }
+    .status-error { color: #ff5252; }
+    .status-warning { color: #ffb300; }
+    .btn {
+      background: #00d9ff;
+      color: #1a1a2e;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4); }
+    .log {
+      background: #0a0a15;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-line { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Environment Variables Checker</h1>
+    
+    <div class="card">
+      <h2 style="margin-bottom: 15px;">Firebase Configuration</h2>
+      <div id="firebaseEnv"></div>
+    </div>
+    
+    <div class="card">
+      <h2 style="margin-bottom: 15px;">Other Variables</h2>
+      <div id="otherEnv"></div>
+    </div>
+    
+    <div class="card">
+      <h2 style="margin-bottom: 15px;">Actions</h2>
+      <button class="btn" onclick="checkEnv()">🔄 Check Again</button>
+      <button class="btn" onclick="testFCM()">🧪 Test FCM Init</button>
+      <button class="btn" onclick="copyEnv()">📋 Copy All</button>
+    </div>
+    
+    <div class="card">
+      <h2 style="margin-bottom: 15px;">Console Log</h2>
+      <div class="log" id="logContainer"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    const log = (msg, type = 'info') => {
+      const container = document.getElementById('logContainer')
+      const line = document.createElement('div')
+      line.className = `log-line ${type === 'error' ? 'status-error' : type === 'success' ? 'status-ok' : ''}`
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`
+      container.appendChild(line)
+      container.scrollTop = container.scrollHeight
+    }
+
+    window.log = log
+
+    const checkEnv = () => {
+      log('=== Checking Environment Variables ===', 'info')
+      
+      // Access env vars - support both window.__VITE_*__ and import.meta.env
+      const firebaseVars = {
+        VITE_FIREBASE_API_KEY: window.__VITE_FIREBASE_API_KEY__ || import.meta.env?.VITE_FIREBASE_API_KEY,
+        VITE_FIREBASE_AUTH_DOMAIN: window.__VITE_FIREBASE_AUTH_DOMAIN__ || import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN,
+        VITE_FIREBASE_PROJECT_ID: window.__VITE_FIREBASE_PROJECT_ID__ || import.meta.env?.VITE_FIREBASE_PROJECT_ID,
+        VITE_FIREBASE_STORAGE_BUCKET: window.__VITE_FIREBASE_STORAGE_BUCKET__ || import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET,
+        VITE_FIREBASE_MESSAGING_SENDER_ID: window.__VITE_FIREBASE_MESSAGING_SENDER_ID__ || import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        VITE_FIREBASE_APP_ID: window.__VITE_FIREBASE_APP_ID__ || import.meta.env?.VITE_FIREBASE_APP_ID,
+        VITE_FIREBASE_MEASUREMENT_ID: window.__VITE_FIREBASE_MEASUREMENT_ID__ || import.meta.env?.VITE_FIREBASE_MEASUREMENT_ID,
+        VITE_FIREBASE_VAPID_KEY: window.__VITE_FIREBASE_VAPID_KEY__ || import.meta.env?.VITE_FIREBASE_VAPID_KEY
+      }
+
+      const otherVars = {
+        VITE_API_URL: window.__VITE_API_URL__ || import.meta.env?.VITE_API_URL,
+        VITE_SOCKET_URL: window.__VITE_SOCKET_URL__ || import.meta.env?.VITE_SOCKET_URL,
+        VITE_APP_NAME: window.__VITE_APP_NAME__ || import.meta.env?.VITE_APP_NAME,
+        VITE_PORT: window.__VITE_PORT__ || import.meta.env?.VITE_PORT
+      }
+
+      // Render Firebase vars
+      const firebaseContainer = document.getElementById('firebaseEnv')
+      firebaseContainer.innerHTML = Object.entries(firebaseVars).map(([key, value]) => {
+        const status = value ? '✓ Present' : '✗ Missing'
+        const statusClass = value ? 'status-ok' : 'status-error'
+        const displayValue = value && (key.includes('KEY') || key.includes('ID')) 
+          ? `${value.substring(0, 15)}...` 
+          : value || 'N/A'
+        
+        log(`${key}: ${value ? 'Present ✓' : 'Missing ✗'}`, value ? 'success' : 'error')
+        
+        return `
+          <div class="env-item">
+            <span class="env-key">${key}</span>
+            <span class="env-value ${statusClass}">${displayValue}</span>
+          </div>
+        `
+      }).join('')
+
+      // Render other vars
+      const otherContainer = document.getElementById('otherEnv')
+      otherContainer.innerHTML = Object.entries(otherVars).map(([key, value]) => {
+        const status = value ? '✓ Present' : '✗ Missing'
+        const statusClass = value ? 'status-ok' : 'status-warning'
+        const displayValue = value || 'N/A'
+        
+        log(`${key}: ${value ? 'Present ✓' : 'Missing ⚠️'}`, value ? 'success' : 'warning')
+        
+        return `
+          <div class="env-item">
+            <span class="env-key">${key}</span>
+            <span class="env-value ${statusClass}">${displayValue}</span>
+          </div>
+        `
+      }).join('')
+
+      log('=== Environment Check Complete ===', 'info')
+    }
+
+    const testFCM = async () => {
+      log('=== Testing Firebase Initialization ===', 'info')
+      
+      try {
+        const { initializeApp } = await import('firebase/app')
+        const { getMessaging } = await import('firebase/messaging')
+        
+        const firebaseConfig = {
+          apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+          authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+          storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+          appId: import.meta.env.VITE_FIREBASE_APP_ID,
+          measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+        }
+
+        log('Creating Firebase app...', 'info')
+        const app = initializeApp(firebaseConfig, 'test-app-' + Date.now())
+        log('✓ Firebase app created', 'success')
+        
+        log('Getting messaging instance...', 'info')
+        const messaging = getMessaging(app)
+        log('✓ Messaging instance obtained', 'success')
+        
+        log('Testing VAPID key format...', 'info')
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
+        if (vapidKey && vapidKey.length > 50) {
+          log(`✓ VAPID key looks valid (length: ${vapidKey.length})`, 'success')
+        } else {
+          log(`⚠️ VAPID key might be invalid (length: ${vapidKey?.length || 0})`, 'warning')
+        }
+        
+        log('✅ Firebase initialization test PASSED', 'success')
+        
+      } catch (error) {
+        log(`❌ Firebase initialization test FAILED: ${error.message}`, 'error')
+        log(`Error details: ${error.stack}`, 'error')
+      }
+    }
+
+    const copyEnv = () => {
+      const envText = `
+VITE_FIREBASE_API_KEY=${import.meta.env.VITE_FIREBASE_API_KEY}
+VITE_FIREBASE_AUTH_DOMAIN=${import.meta.env.VITE_FIREBASE_AUTH_DOMAIN}
+VITE_FIREBASE_PROJECT_ID=${import.meta.env.VITE_FIREBASE_PROJECT_ID}
+VITE_FIREBASE_STORAGE_BUCKET=${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET}
+VITE_FIREBASE_MESSAGING_SENDER_ID=${import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID}
+VITE_FIREBASE_APP_ID=${import.meta.env.VITE_FIREBASE_APP_ID}
+VITE_FIREBASE_MEASUREMENT_ID=${import.meta.env.VITE_FIREBASE_MEASUREMENT_ID}
+VITE_FIREBASE_VAPID_KEY=${import.meta.env.VITE_FIREBASE_VAPID_KEY}
+      `.trim()
+      
+      navigator.clipboard.writeText(envText).then(() => {
+        log('✓ Environment variables copied to clipboard', 'success')
+      }).catch(err => {
+        log(`✗ Failed to copy: ${err.message}`, 'error')
+      })
+    }
+
+    window.checkEnv = checkEnv
+    window.testFCM = testFCM
+    window.copyEnv = copyEnv
+
+    // Auto-check on load
+    setTimeout(() => {
+      checkEnv()
+    }, 500)
+  </script>
+</body>
+</html>

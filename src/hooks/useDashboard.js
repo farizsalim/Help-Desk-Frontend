@@ -1,68 +1,84 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuthStore, useConversationStore, useMessageStore, useSocketStore } from '../stores'
+import { initializeFCM } from '../utils/notificationService'
 
 export function useDashboard() {
   const navigate = useNavigate()
-  
-  // Stores
+  const { ticketId: routeTicketId } = useParams()
+  const [searchParams] = useSearchParams()
+
   const auth = useAuthStore()
   const conversation = useConversationStore()
   const message = useMessageStore()
   const socket = useSocketStore()
-  
-  // Refs for DOM manipulation
+
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const selectedConvRef = useRef(null)
 
-  // Load user on mount
+  const openChat = (conv, replace = false) => {
+    conversation.setSelectedConversation(conv)
+    conversation.setShowChatModal(true)
+    navigate(`/dashboard/ticket/${conv._id}`, { replace })
+  }
+
+  const closeChat = () => {
+    conversation.setShowChatModal(false)
+    conversation.setSelectedConversation(null)
+    navigate('/dashboard')
+  }
+
   useEffect(() => {
     const init = async () => {
       const userData = await auth.loadUser(navigate)
       if (userData) {
-        // Set default filter based on role
         if (userData.role === 'admin') conversation.setFilter('open')
         else if (userData.role === 'it_staff') conversation.setFilter('in_progress')
-        
-        // Fetch initial data
+
         await conversation.fetchData(userData.role, navigate)
       }
     }
+
     init()
   }, [])
 
-  // Disable right-click context menu
   useEffect(() => {
     const handleContextMenu = (e) => {
       e.preventDefault()
       return false
     }
+
     document.addEventListener('contextmenu', handleContextMenu)
     return () => document.removeEventListener('contextmenu', handleContextMenu)
   }, [])
 
-  // Socket setup - only after user is loaded
   useEffect(() => {
     if (!auth.user) return
-    
+
     socket.connect(auth.user)
-    
+
+    initializeFCM(auth.user).then((token) => {
+      if (token) {
+        console.log('[DASHBOARD] FCM initialized successfully, token:', token)
+      } else {
+        console.log('[DASHBOARD] FCM initialization skipped or failed')
+      }
+    })
+
     return () => {
       socket.disconnect()
     }
   }, [auth.user])
 
-  // Handle notification clicks (focus app + open chat) like WhatsApp
   useEffect(() => {
     const onNotificationClick = (event) => {
       const ticketId = event.detail?.ticketId
       if (!ticketId) return
 
-      const targetConv = conversation.conversations.find(c => c._id === ticketId)
+      const targetConv = conversation.conversations.find((conv) => conv._id === ticketId)
       if (targetConv) {
-        conversation.setSelectedConversation(targetConv)
-        conversation.setShowChatModal(true)
+        openChat(targetConv)
       }
 
       try {
@@ -76,7 +92,6 @@ export function useDashboard() {
     return () => window.removeEventListener('app:notification-click', onNotificationClick)
   }, [conversation.conversations])
 
-  // Fetch messages when conversation selected
   useEffect(() => {
     selectedConvRef.current = conversation.selectedConversation
     if (conversation.selectedConversation) {
@@ -85,19 +100,69 @@ export function useDashboard() {
     }
   }, [conversation.selectedConversation])
 
-  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    const ticketId = routeTicketId || searchParams.get('ticket')
+    const notifType = searchParams.get('notif')
+
+    console.log('[DASHBOARD] URL params check:', {
+      ticketId,
+      notifType,
+      hasConversations: conversation.conversations.length > 0,
+      conversationsCount: conversation.conversations.length
+    })
+
+    if (!ticketId) return
+    if (!conversation.conversations.length) {
+      console.log('[DASHBOARD] Waiting for conversations to load before opening ticket...')
+      return
+    }
+
+    const targetConv = conversation.conversations.find((conv) => conv._id === ticketId)
+
+    if (!targetConv) {
+      console.warn('[DASHBOARD] Ticket not found in conversations:', ticketId, 'Available tickets:', conversation.conversations.map((conv) => conv._id))
+      return
+    }
+
+    console.log('[DASHBOARD] Opening conversation from notification:', {
+      ticketId,
+      notifType,
+      conversation: targetConv
+    })
+
+    const openTimer = setTimeout(() => {
+      openChat(targetConv, true)
+    }, 300)
+
+    return () => clearTimeout(openTimer)
+  }, [routeTicketId, searchParams, conversation.conversations])
+
+  // Ensure we are joined to all conversation rooms so socket emits arrive
+  // even when a conversation/chat is not actively opened. This enables
+  // browser notifications for unread messages from other tickets.
+  useEffect(() => {
+    try {
+      if (!socket?.isConnected) return
+      if (!conversation.conversations?.length) return
+
+      console.log('[DASHBOARD] Joining all conversation rooms for notifications')
+      conversation.conversations.forEach((conv) => {
+        if (conv?._id) socket.joinConversation(conv._id)
+      })
+    } catch (err) {
+      console.error('[DASHBOARD] Error joining conversations:', err)
+    }
+  }, [socket?.isConnected, conversation.conversations])
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [conversation.messages])
 
-  // Action handlers
   const handleLogout = () => auth.logout(navigate)
-  
+
   const handleCreateTicket = async (ticketSubject) => {
     const newTicket = await conversation.createTicket(ticketSubject, navigate)
     if (newTicket) {
-      conversation.setSelectedConversation(newTicket)
-      conversation.setShowChatModal(true)
+      openChat(newTicket)
       await conversation.fetchData(auth.user?.role, navigate)
     }
   }
@@ -106,7 +171,6 @@ export function useDashboard() {
     e.preventDefault()
     const success = await message.sendMessage(conversation.selectedConversation?._id)
     if (success) {
-      // Refresh messages
       conversation.fetchMessages(conversation.selectedConversation._id)
     }
   }
@@ -127,11 +191,6 @@ export function useDashboard() {
     if (success) await conversation.fetchData(auth.user?.role, navigate)
   }
 
-  const openChat = (conv) => {
-    conversation.setSelectedConversation(conv)
-    conversation.setShowChatModal(true)
-  }
-
   const formatDate = (dateString) => {
     if (!dateString) return '-'
     return new Date(dateString).toLocaleDateString('id-ID', {
@@ -144,13 +203,10 @@ export function useDashboard() {
   }
 
   return {
-    // Auth state
     user: auth.user,
     loading: auth.loading,
     error: auth.error,
     success: auth.success,
-    
-    // Conversation state
     conversations: conversation.conversations,
     users: conversation.users,
     itStaff: conversation.itStaff,
@@ -173,28 +229,20 @@ export function useDashboard() {
     showCreateModal: conversation.showCreateModal,
     showChatModal: conversation.showChatModal,
     showAssignModal: conversation.showAssignModal,
-    
-    // Message state
     newMessage: message.newMessage,
     selectedImage: message.selectedImage,
     imagePreview: message.imagePreview,
     uploadingImage: message.uploadingImage,
     previewImage: message.previewImage,
     typingUsers: message.typingUsers,
-    
-    // Computed
     openTickets: conversation.openTickets,
     activeTickets: conversation.activeTickets,
     closedTickets: conversation.closedTickets,
-    
-    // Refs
     socketRef: message.refs.socketRef,
     messagesEndRef,
     typingTimeoutRef: message.refs.typingTimeoutRef,
     fileInputRef,
     selectedConvRef,
-    
-    // Setters
     setSelectedConversation: conversation.setSelectedConversation,
     setSelectedConvForAssign: conversation.setSelectedConvForAssign,
     setSelectedITStaff: conversation.setSelectedITStaff,
@@ -215,8 +263,6 @@ export function useDashboard() {
     setUserCurrentPage: conversation.setUserCurrentPage,
     setSelectedUser: conversation.setSelectedUser,
     setShowUserDetail: conversation.setShowUserDetail,
-    
-    // Actions
     handleLogout,
     handleCreateTicket,
     handleSendMessage,
@@ -226,6 +272,7 @@ export function useDashboard() {
     handleAddITStaff,
     handleChangeRole,
     openChat,
+    closeChat,
     formatDate
   }
 }

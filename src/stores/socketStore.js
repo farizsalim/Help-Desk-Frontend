@@ -21,11 +21,18 @@ export const useSocketStore = create((set, get) => ({
     const token = localStorage.getItem('token')
     if (!token || !user) return
 
-    const socket = io(API_URL, { auth: { token } })
+    const socket = io(API_URL, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+      autoConnect: true
+    })
     
     socket.on('connect', () => {
       set({ isConnected: true, socket })
-      // Request notification permission when user connects
       requestNotificationPermission()
     })
 
@@ -36,20 +43,12 @@ export const useSocketStore = create((set, get) => ({
     // Message events
     socket.on('new_message', (data) => {
       useConversationStore.getState().handleNewMessage(data, user._id)
-      
-      // Send notification only if message is from another user
+
       if (data.message?.sender_id?._id !== user._id) {
         const senderName = data.message?.sender_id?.nama || 'Pengguna'
         const senderRole = data.message?.sender_id?.role || 'user'
         const messagePreview = data.message?.isi_pesan?.substring(0, 50) || 'Anda memiliki pesan baru'
         const conversationId = data.message?.conversation_id
-
-        console.log('[SOCKET] 📨 New Message Event:', {
-          from: senderName,
-          role: senderRole,
-          preview: messagePreview,
-          conversationId
-        })
 
         notifyNewMessage(senderName, senderRole, conversationId, messagePreview)
       }
@@ -58,17 +57,10 @@ export const useSocketStore = create((set, get) => ({
     // Ticket events
     socket.on('ticket_closed', (data) => {
       useConversationStore.getState().handleTicketClosed(data, user._id, user.role)
-      
-      // Send notification to relevant users
+
       if (data.created_by !== user._id) {
         const ticketTitle = data.judul_tiket || data.conversation?.subject || 'Tiket'
         const closedByName = data.closed_by_nama || data.closedBy?.nama || 'Admin'
-
-        console.log('[SOCKET] 🔒 Ticket Closed Event:', {
-          title: ticketTitle,
-          closedBy: closedByName,
-          conversationId: data.id
-        })
 
         notifyTicketClosed(data.id, ticketTitle, closedByName)
       }
@@ -76,37 +68,21 @@ export const useSocketStore = create((set, get) => ({
 
     socket.on('it_staff_added', (data) => {
       useConversationStore.getState().handleITStaffAdded(data, user._id, user.role)
-      
-      // Send notification when IT staff is added
+
       const staffName = data.it_staff_nama || data.itStaff?.nama || 'IT Staff'
       const staffRole = data.it_staff_role || data.itStaff?.role || 'it_staff'
       const conversationId = data.conversation_id || data.conversation?._id
-
-      console.log('[SOCKET] 🔧 IT Staff Added Event:', {
-        staffName,
-        staffRole,
-        conversationId,
-        addedBy: data.added_by_nama
-      })
 
       notifyITStaffAdded(staffName, staffRole, conversationId)
     })
 
     socket.on('new_ticket', (data) => {
       useConversationStore.getState().handleNewTicket(data, user.role)
-      
-      // Send notification for new ticket (mainly for admin/staff)
+
       if (user.role === 'admin' || user.role === 'it_staff') {
         const ticketTitle = data.judul_tiket || data.subject || 'Tiket Baru'
         const userName = data.pengguna_nama || data.createdBy?.nama || 'Pengguna'
         const userRole = data.pengguna_role || data.createdBy?.role || 'user'
-
-        console.log('[SOCKET] 🎫 New Ticket Event:', {
-          title: ticketTitle,
-          from: userName,
-          role: userRole,
-          ticketId: data.id
-        })
 
         notifyNewTicket(ticketTitle, userName, userRole)
       }

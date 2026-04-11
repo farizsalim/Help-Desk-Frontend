@@ -81,7 +81,10 @@ const UserDashboard = ({
               <div key={conv._id} className="px-6 py-4 hover:bg-white/5 transition-colors">
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 rounded text-xs font-mono text-orange-300 flex-shrink-0">
+                        {conv.ticket_id || conv._id?.slice(-6).toUpperCase()}
+                      </span>
                       <h4 className="font-semibold text-white truncate">{conv.subject}</h4>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                         conv.status === 'open' ? 'bg-green-500/20 text-green-300' : 

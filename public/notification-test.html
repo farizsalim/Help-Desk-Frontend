@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .button-primary {
+            background: #667eea;
+            color: white;
+        }
+        .button-success {
+            background: #00b894;
+            color: white;
+        }
+        .button-warning {
+            background: #fdcb6e;
+            color: #2d3436;
+        }
+        .button-danger {
+            background: #d63031;
+            color: white;
+        }
+        .checks {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .check-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .check-item:last-child {
+            border-bottom: none;
+        }
+        .check-label {
+            color: #333;
+            font-size: 14px;
+        }
+        .check-status {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .log {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #667eea;
+            padding-left: 10px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Notification Tester</h1>
+        <p class="subtitle">Test push notifications for PWA</p>
+
+        <div id="statusContainer"></div>
+
+        <div class="checks" id="checksContainer">
+            <h3 style="margin-bottom: 15px; color: #333;">System Checks</h3>
+            <div id="checksList"></div>
+        </div>
+
+        <button class="button button-primary" onclick="requestPermission()">
+            📋 Request Permission
+        </button>
+
+        <button class="button button-success" onclick="testBasicNotification()" id="basicBtn" disabled>
+            ✅ Test Basic Notification
+        </button>
+
+        <button class="button button-warning" onclick="testWhatsAppNotification()" id="whatsappBtn" disabled>
+            💬 Test WhatsApp Style
+        </button>
+
+        <button class="button button-danger" onclick="clearAllNotifications()">
+            🗑️ Clear All Notifications
+        </button>
+
+        <div class="log" id="logContainer">
+            <div style="color: #94a3b8; margin-bottom: 10px;">📝 Console Log:</div>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const logs = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push(logEntry);
+            
+            const logContainer = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = logEntry;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function showStatus(message, type) {
+            const container = document.getElementById('statusContainer');
+            container.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function runChecks() {
+            const checks = [
+                { name: 'Notification API', check: () => 'Notification' in window },
+                { name: 'Service Worker', check: () => 'serviceWorker' in navigator },
+                { name: 'Push Manager', check: () => 'PushManager' in window },
+                { name: 'Permission Granted', check: () => Notification.permission === 'granted' }
+            ];
+
+            const checksList = document.getElementById('checksList');
+            checksList.innerHTML = '';
+
+            let allPassed = true;
+
+            checks.forEach(({ name, check }) => {
+                const passed = check();
+                if (!passed) allPassed = false;
+
+                const item = document.createElement('div');
+                item.className = 'check-item';
+                item.innerHTML = `
+                    <span class="check-label">${name}</span>
+                    <span class="check-status" style="color: ${passed ? '#00b894' : '#d63031'}">
+                        ${passed ? '✅ PASS' : '❌ FAIL'}
+                    </span>
+                `;
+                checksList.appendChild(item);
+            });
+
+            if (allPassed) {
+                showStatus('✅ All systems ready! You can send notifications.', 'success');
+                document.getElementById('basicBtn').disabled = false;
+                document.getElementById('whatsappBtn').disabled = false;
+            } else {
+                showStatus('⚠️ Some checks failed. Please fix issues above.', 'warning');
+            }
+
+            addLog(`Checks completed: ${allPassed ? 'All passed' : 'Some failed'}`);
+        }
+
+        async function requestPermission() {
+            addLog('Requesting permission...');
+            
+            try {
+                const permission = await Notification.requestPermission();
+                addLog(`Permission result: ${permission}`, 'success');
+                
+                if (permission === 'granted') {
+                    showStatus('✅ Permission granted!', 'success');
+                    runChecks();
+                    
+                    // Auto test after permission granted
+                    setTimeout(() => testBasicNotification(), 1000);
+                } else {
+                    showStatus('❌ Permission denied. Please enable in browser settings.', 'error');
+                }
+            } catch (error) {
+                addLog(`Error requesting permission: ${error.message}`, 'error');
+                showStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        function testBasicNotification() {
+            addLog('Testing basic notification...');
+
+            if (Notification.permission !== 'granted') {
+                addLog('Permission not granted!', 'error');
+                return;
+            }
+
+            const notif = new Notification('✅ Test Notification', {
+                body: 'Notifikasi berhasil ditampilkan seperti WhatsApp!',
+                icon: '/pwa-192x192.png',
+                badge: '/pwa-192x192.png',
+                vibrate: [200, 100, 200],
+                tag: 'test-notification',
+                requireInteraction: true,
+                silent: false,
+                data: {
+                    ticketId: 'test-123',
+                    type: 'test'
+                }
+            });
+
+            notif.onshow = () => addLog('✅ Notification shown successfully!', 'success');
+            notif.onclick = () => {
+                addLog('✅ Notification clicked!');
+                window.focus();
+                notif.close();
+            };
+            notif.onerror = (error) => addLog('❌ Notification error: ' + error, 'error');
+
+            addLog('Notification sent!');
+        }
+
+        function testWhatsAppNotification() {
+            addLog('Testing WhatsApp-style notification...');
+
+            if (Notification.permission !== 'granted') {
+                addLog('Permission not granted!', 'error');
+                return;
+            }
+
+            const notif = new Notification('💬 Pesan Baru dari John', {
+                body: 'Halo, apakah tiket ini sudah selesai?\n\n[Klik untuk membalas]',
+                icon: '/pwa-192x192.png',
+                badge: '/pwa-192x192.png',
+                vibrate: [200, 100, 200],
+                tag: 'message-john-123',
+                requireInteraction: true,
+                silent: false,
+                data: {
+                    ticketId: 'TKT-123',
+                    senderName: 'John Doe',
+                    senderRole: 'user',
+                    type: 'new_message'
+                }
+            });
+
+            notif.onshow = () => addLog('✅ WhatsApp-style notification shown!', 'success');
+            notif.onclick = () => {
+                addLog('✅ Opening conversation...');
+                window.focus();
+                notif.close();
+            };
+
+            addLog('WhatsApp-style notification sent!');
+        }
+
+        function clearAllNotifications() {
+            addLog('Clearing all notifications...');
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.getNotifications().then(notifications => {
+                        notifications.forEach(notif => notif.close());
+                        addLog('✅ Cleared ' + notifications.length + ' notifications');
+                    });
+                });
+            } else {
+                addLog('Service Worker not available');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            addLog('Notification Tester initialized');
+            runChecks();
+        });
+    </script>
+</body>
+</html>

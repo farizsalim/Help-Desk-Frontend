@@ -1,0 +1,27 @@
+{
+  "name": "Help Desk Chat",
+  "short_name": "HelpDesk",
+  "description": "Help Desk Ticketing System",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/vite.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

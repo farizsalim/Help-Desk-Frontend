@@ -39,7 +39,7 @@ function Dashboard() {
     openTickets, activeTickets, closedTickets,
     handleLogout, handleCreateTicket, handleSendMessage,
     handleImageSelect, clearSelectedImage, handleCloseTicket,
-    handleAddITStaff, handleChangeRole, openChat, formatDate
+    handleAddITStaff, handleChangeRole, openChat, closeChat, formatDate
   } = useDashboard()
 
   if (loading) {
@@ -129,7 +129,7 @@ function Dashboard() {
           newMessage={newMessage}
           setNewMessage={setNewMessage}
           onSendMessage={handleSendMessage}
-          onClose={() => setShowChatModal(false)}
+          onClose={closeChat}
           formatDate={formatDate}
           messagesEndRef={messagesEndRef}
           typingUsers={typingUsers}

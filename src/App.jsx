@@ -26,6 +26,11 @@ function App() {
             <Dashboard />
           </PrivateRoute>
         } />
+        <Route path="/dashboard/ticket/:ticketId" element={
+          <PrivateRoute>
+            <Dashboard />
+          </PrivateRoute>
+        } />
 
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

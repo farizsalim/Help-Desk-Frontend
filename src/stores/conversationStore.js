@@ -46,7 +46,7 @@ export const useConversationStore = create((set, get) => ({
   },
 
   // Actions - Setters
-  setConversations: (conversations) => set({ conversations }),
+  setConversations: (conversations) => set({ conversations, isDataLoaded: true }),
   setUsers: (users) => set({ users }),
   setItStaff: (itStaff) => set({ itStaff }),
   setMessages: (messages) => set({ messages }),

@@ -32,7 +32,8 @@ const TicketList = ({
     .filter(c => 
       c.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.participants?.[0]?.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.participants?.[0]?.work_id?.toLowerCase().includes(searchTerm.toLowerCase())
+      c.participants?.[0]?.work_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.ticket_id?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
   const totalPages = Math.ceil(filteredConversations.length / itemsPerPage)
@@ -147,6 +148,9 @@ const TicketList = ({
                 <div className="flex flex-col gap-2 sm:gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                      <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-500/40 rounded text-xs font-mono text-orange-300 flex-shrink-0">
+                        #{conv.ticket_id || conv._id?.slice(-6).toUpperCase()}
+                      </span>
                       <h4 className="font-semibold text-white text-sm sm:text-base truncate">{conv.subject}</h4>
                       <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                         conv.status === 'open' ? 'bg-green-500/20 text-green-300' :

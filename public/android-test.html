@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Notification Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 13px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .button {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .button:active { transform: scale(0.98); }
+        .button-primary { background: #667eea; color: white; }
+        .button-success { background: #00b894; color: white; }
+        .button-warning { background: #fdcb6e; color: #2d3436; }
+        .button-danger { background: #d63031; color: white; }
+        .button-info { background: #0984e3; color: white; }
+        
+        .check-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        .check-label { color: #333; font-size: 14px; }
+        .check-status { 
+            font-weight: 600; 
+            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: 5px;
+        }
+        .check-pass { background: #d4edda; color: #155724; }
+        .check-fail { background: #f8d7da; color: #721c24; }
+        
+        .log {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 4px 0;
+            padding: 4px;
+            border-left: 3px solid #667eea;
+            padding-left: 8px;
+        }
+        .hidden { display: none; }
+        
+        .icon-preview {
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .icon-preview img {
+            width: 64px;
+            height: 64px;
+            margin: 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Android Notification Tester</h1>
+        <p class="subtitle">Test PWA notifications on your Android device</p>
+
+        <div id="statusContainer"></div>
+
+        <div class="icon-preview" id="iconPreview">
+            <strong style="display:block; margin-bottom:10px; color:#333;">Icon Check:</strong>
+            <img src="/pwa-192x192.png" alt="192x192" id="icon192">
+            <img src="/pwa-512x512.png" alt="512x512" id="icon512">
+        </div>
+
+        <div class="checks" id="checksContainer">
+            <div id="checksList"></div>
+        </div>
+
+        <button class="button button-primary" onclick="requestPermission()">
+            📋 Request Permission
+        </button>
+
+        <button class="button button-success" onclick="testBasicNotification()" id="basicBtn" disabled>
+            ✅ Test Basic Notification
+        </button>
+
+        <button class="button button-info" onclick="testWhatsAppStyle()" id="whatsappBtn" disabled>
+            💬 WhatsApp Style
+        </button>
+
+        <button class="button button-warning" onclick="testWithSound()" id="soundBtn" disabled>
+            🔊 With Sound & Vibrate
+        </button>
+
+        <button class="button button-danger" onclick="clearAllNotifications()">
+            🗑️ Clear All Notifications
+        </button>
+
+        <div class="log" id="logContainer">
+            <div style="color: #94a3b8; margin-bottom: 8px; font-size: 11px;">📝 Console Log:</div>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const logs = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push(logEntry);
+            
+            const logContainer = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = logEntry;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function showStatus(message, type) {
+            const container = document.getElementById('statusContainer');
+            container.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function runChecks() {
+            const checks = [
+                { name: 'Notification API', check: () => 'Notification' in window },
+                { name: 'Service Worker', check: () => 'serviceWorker' in navigator },
+                { name: 'Push Manager', check: () => 'PushManager' in window },
+                { name: 'Permission Granted', check: () => Notification.permission === 'granted' }
+            ];
+
+            const checksList = document.getElementById('checksList');
+            checksList.innerHTML = '';
+
+            let allPassed = true;
+
+            for (const { name, check } of checks) {
+                const passed = check();
+                if (!passed) allPassed = false;
+
+                const item = document.createElement('div');
+                item.className = 'check-item';
+                item.innerHTML = `
+                    <span class="check-label">${name}</span>
+                    <span class="check-status ${passed ? 'check-pass' : 'check-fail'}">
+                        ${passed ? '✅' : '❌'}
+                    </span>
+                `;
+                checksList.appendChild(item);
+                
+                addLog(`${passed ? '✅' : '❌'} ${name}: ${passed ? 'PASS' : 'FAIL'}`);
+            }
+
+            // Check icons
+            try {
+                const icon192 = await fetch('/pwa-192x192.png').then(r => r.ok);
+                const icon512 = await fetch('/pwa-512x512.png').then(r => r.ok);
+                
+                document.getElementById('icon192').style.opacity = icon192 ? '1' : '0.3';
+                document.getElementById('icon512').style.opacity = icon512 ? '1' : '0.3';
+                
+                addLog(`✅ Icons: 192=${icon192 ? 'OK' : 'MISSING'}, 512=${icon512 ? 'OK' : 'MISSING'}`);
+                
+                if (!icon192 || !icon512) {
+                    showStatus('⚠️ Icons missing! Generate icons first via /icon-generator.html', 'error');
+                    return false;
+                }
+            } catch (e) {
+                addLog('❌ Icon check failed: ' + e.message);
+            }
+
+            if (allPassed) {
+                showStatus('✅ All systems ready! You can send notifications.', 'success');
+                document.getElementById('basicBtn').disabled = false;
+                document.getElementById('whatsappBtn').disabled = false;
+                document.getElementById('soundBtn').disabled = false;
+            } else {
+                showStatus('⚠️ Some checks failed. Please fix issues above.', 'warning');
+            }
+
+            addLog(`\n${allPassed ? '✅ All checks passed!' : '⚠️ Some checks failed'}`);
+            return allPassed;
+        }
+
+        async function requestPermission() {
+            addLog('Requesting permission...');
+            
+            try {
+                const permission = await Notification.requestPermission();
+                addLog(`Permission result: ${permission}`, 'success');
+                
+                if (permission === 'granted') {
+                    showStatus('✅ Permission granted!', 'success');
+                    await runChecks();
+                    
+                    setTimeout(() => testBasicNotification(), 1000);
+                } else {
+                    showStatus('❌ Permission denied. Enable in Chrome Settings → Site Permissions → Notifications', 'error');
+                    addLog('⚠️ User denied permission. Must enable manually in settings.', 'error');
+                }
+            } catch (error) {
+                addLog(`Error requesting permission: ${error.message}`, 'error');
+                showStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        function testBasicNotification() {
+            addLog('Testing basic notification...');
+
+            if (Notification.permission !== 'granted') {
+                addLog('❌ Permission not granted!', 'error');
+                showStatus('Please grant permission first', 'error');
+                return;
+            }
+
+            const notif = new Notification('✅ Test Notification', {
+                body: 'Notifikasi berhasil ditampilkan di Android!',
+                icon: '/pwa-192x192.png',
+                badge: '/pwa-192x192.png',
+                vibrate: [200, 100, 200],
+                tag: 'test-notification-' + Date.now(),
+                requireInteraction: true,
+                silent: false,
+                data: {
+                    ticketId: 'test-123',
+                    type: 'test'
+                }
+            });
+
+            notif.onshow = () => {
+                addLog('✅ Notification shown successfully!', 'success');
+                showStatus('Check your notification tray!', 'success');
+            };
+            
+            notif.onclick = () => {
+                addLog('✅ Notification clicked!');
+                window.focus();
+                notif.close();
+            };
+            
+            notif.onerror = (error) => {
+                addLog('❌ Notification error: ' + error, 'error');
+            };
+
+            addLog('Notification sent! Check notification tray.');
+        }
+
+        function testWhatsAppStyle() {
+            addLog('Testing WhatsApp-style notification...');
+
+            if (Notification.permission !== 'granted') {
+                addLog('Permission not granted!', 'error');
+                return;
+            }
+
+            const notif = new Notification('💬 Pesan Baru dari John', {
+                body: 'Halo, apakah tiket ini sudah selesai?\n\n[Klik untuk membalas]',
+                icon: '/pwa-192x192.png',
+                badge: '/pwa-192x192.png',
+                vibrate: [200, 100, 200],
+                tag: 'message-john-' + Date.now(),
+                requireInteraction: true,
+                silent: false,
+                data: {
+                    ticketId: 'TKT-123',
+                    senderName: 'John Doe',
+                    senderRole: 'user',
+                    type: 'new_message'
+                }
+            });
+
+            notif.onshow = () => addLog('✅ WhatsApp-style notification shown!', 'success');
+            notif.onclick = () => {
+                addLog('✅ Opening conversation...');
+                window.focus();
+                notif.close();
+            };
+
+            addLog('WhatsApp-style notification sent!');
+        }
+
+        function testWithSound() {
+            addLog('Testing with sound and vibrate...');
+
+            if (Notification.permission !== 'granted') {
+                addLog('Permission not granted!', 'error');
+                return;
+            }
+
+            const notif = new Notification('🔊 Test dengan Suara', {
+                body: 'Ini测试 notifikasi dengan suara dan getar!\n\nPerhatikan volume HP Anda.',
+                icon: '/pwa-192x192.png',
+                badge: '/pwa-192x192.png',
+                vibrate: [300, 100, 300, 100, 300],
+                tag: 'sound-test-' + Date.now(),
+                requireInteraction: true,
+                silent: false,
+                data: {
+                    ticketId: 'sound-test',
+                    type: 'sound_test'
+                }
+            });
+
+            // Try to play sound
+            try {
+                const audio = new Audio('/notification-sound.mp3');
+                audio.volume = 1.0;
+                audio.play().catch(e => addLog('⚠️ Audio play failed: ' + e.message));
+                addLog('🔊 Attempting to play sound...');
+            } catch (e) {
+                addLog('⚠️ Audio not available: ' + e.message);
+            }
+
+            notif.onshow = () => addLog('✅ Notification with sound/vibrate shown!', 'success');
+            notif.onclick = () => {
+                addLog('✅ Notification clicked!');
+                window.focus();
+                notif.close();
+            };
+
+            addLog('Sound & vibrate notification sent!');
+        }
+
+        function clearAllNotifications() {
+            addLog('Clearing all notifications...');
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.getNotifications().then(notifications => {
+                        notifications.forEach(notif => notif.close());
+                        addLog('✅ Cleared ' + notifications.length + ' notifications');
+                    });
+                });
+            } else {
+                addLog('Service Worker not available');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', async () => {
+            addLog('Android Notification Tester initialized');
+            addLog('Device: ' + navigator.userAgent);
+            
+            await runChecks();
+        });
+    </script>
+</body>
+</html>

@@ -74,17 +74,33 @@ export const useMessageStore = create((set, get) => ({
       refs.socketRef.current?.emit('stop_typing', { conversationId })
       if (refs.typingTimeoutRef.current) clearTimeout(refs.typingTimeoutRef.current)
 
-      const formData = new FormData()
-      formData.append('conversation_id', conversationId)
-      formData.append('isi_pesan', newMessage.trim())
-      if (selectedImage) formData.append('image', selectedImage)
+      let response
+      
+      if (selectedImage) {
+        // Send with image using FormData
+        const formData = new FormData()
+        formData.append('conversation_id', conversationId)
+        formData.append('isi_pesan', newMessage.trim())
+        formData.append('image', selectedImage)
 
-      await axios.post(`${API_URL}/messages`, formData, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      })
+        response = await axios.post(`${API_URL}/messages`, formData, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+      } else {
+        // Send text-only message using JSON
+        response = await axios.post(`${API_URL}/messages`, {
+          conversation_id: conversationId,
+          isi_pesan: newMessage.trim()
+        }, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        })
+      }
       
       set({ newMessage: '', selectedImage: null, imagePreview: null })
       return true

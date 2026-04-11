@@ -1,5 +1,12 @@
 import { useMessageStore, useSocketStore } from '../../stores'
 
+const API_URL = import.meta.env.VITE_API_URL
+const getImageUrl = (url) => {
+  if (!url) return url
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`
+}
+
 const ChatModal = ({
   conversation,
   messages,
@@ -78,13 +85,13 @@ const ChatModal = ({
                   <p className="text-xs opacity-75 mb-0.5">{msg.sender_id?.nama}</p>
                   
                   {/* Image Attachment */}
-                  {msg.attachment?.url && (
+                  {msg.image_url && (
                     <div className="mb-1.5">
                       <img 
-                        src={msg.attachment.url} 
+                        src={getImageUrl(msg.image_url)} 
                         alt="Attachment" 
                         className="max-w-full max-h-32 sm:max-h-48 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setPreviewImage(msg.attachment.url)}
+                        onClick={() => setPreviewImage(getImageUrl(msg.image_url))}
                       />
                     </div>
                   )}
